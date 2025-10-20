@@ -1,0 +1,14 @@
+rancher_hostname: "172.27.10.100"
+rancher_port: "8443"
+rancher_url: "https://172.27.10.100:8443"
+admin_password: "P@ssw0rdP@ssw0rd"
+
+cluster_name: "custom-cluster"
+cicd_cluster_name: "cicd-cluster"
+# database_cluster_name: "database-cluster"
+# fraud_cluster_name: "fraud-cluster"
+# dev_cluster_name: "dev-cluster"
+# sit_cluster_name: "sit-cluster"
+node_command: ""  # กำหนดค่าว่างไว้ก่อน
+
+# argocd_new_password: $2a$10$1zJxVo9y.FsQlPS6DChEiO19GmhDXL.T5qoYP978XZBgQ.cmgm3Ay

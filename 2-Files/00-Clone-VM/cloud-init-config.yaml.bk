@@ -1,0 +1,34 @@
+#cloud-config
+hostname: ubuntu-cloud
+users:
+  - name: administrator
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    lock_passwd: false
+    passwd: "$2y$10$/Qy//GnIhWuGKKckKCHn8Ox4pP/ezV3WxVKVgXLKnky8vLXtdWd5e" # รหัสผ่านแบบ Hash
+
+    #plain_text_passwd: ""  # Unused
+    # passwd: "$6$Gap1BxMQiONpN/Vx$GmgBcXTPbngaCvZb74iff94ZKTd89qH41YZDF3bR6iX0rfSfPerDpuuHd.aI9aeAlVV5VkwQYWxkk0IXYgsHs1"
+
+
+
+chpasswd:
+  # list: |
+  #   administrator:P@ssw0rd
+  expire: false
+ssh_pwauth: true
+
+network:
+  version: 2
+  ethernets:
+    ens160:
+      dhcp4: false
+      addresses:
+        - ${ip_address}/24
+      gateway4: ${gateway}
+      nameservers:
+        addresses:
+          - 8.8.8.8
+          - 8.8.4.4
+
+runcmd:
+  - apt update && apt upgrade -y
