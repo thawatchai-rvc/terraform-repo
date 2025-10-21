@@ -39,7 +39,7 @@ vm_cicd_master_static_ips           = ["172.27.10.98"]
 vm_cicd_master_disk_size_gb         = 120 # 120GB
 
 # Node VM variables
-vm_cicd_node_count                = 1 #VMs
+vm_cicd_node_count                = 3 #VMs
 vm_cicd_node_name                 = "cicd-dev-node"
 vm_cicd_node_description          = "The VM node"
 vm_cicd_node_num_vcpus_per_socket = 4 #vcpu

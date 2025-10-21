@@ -7,7 +7,7 @@
   hosts: 
     - spider-cicd-dev-rancher
     - spider-cicd-dev
-    - spider-swimlane
+    # - spider-swimlane
     # - spider-lb-dev
     # - spider-fraud-dev
     # - spider-db-dev

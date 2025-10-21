@@ -39,7 +39,8 @@
   - apt-get update
   - apt-get install -y ansible
   # Create private key
-  - ssh-keygen -t rsa -b 4096 -f /home/administrator/.ssh/id_rsa -N ""
+  # - ssh-keygen -t rsa -b 4096 -f /home/administrator/.ssh/id_rsa -N ""
+  - ssh-keygen -t ed25519 -f /home/administrator/.ssh/id_rsa -N ''
   - cat /home/administrator/.ssh/id_rsa.pub >> /home/administrator/.ssh/authorized_keys
   - chmod 600 /home/administrator/.ssh/authorized_keys
   - chmod 600 /home/administrator/.ssh/id_rsa
