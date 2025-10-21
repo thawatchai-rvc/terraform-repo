@@ -1,0 +1,72 @@
+---
+- hosts: spider-cicd-dev-rancher
+  vars:
+    kubeconfigs:
+      # - cicd-cluster-kubeconfig.yaml
+      # - database-cluster-kubeconfig.yaml
+      # - dev-cluster-kubeconfig.yaml
+      - fraud-cluster-kubeconfig.yaml
+      # - sit-cluster-kubeconfig.yaml
+
+  tasks:
+    # - name: Check current working directory
+    #   command: pwd
+    #   register: current_path_output
+
+    # - name: Show current path
+    #   debug:
+    #     var: current_path_output.stdout
+    # - name: List files in current directory
+    #   command: ls -l
+    #   register: file_list_output
+
+    # - name: Show list of files
+    #   debug:
+    #     var: file_list_output.stdout_lines
+
+    - name: Set up kubeconfig file for each cluster
+      shell: "cp ~/{{ item }} /tmp/{{ item }} && chmod 0600 /tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"
+      register: kubeconfig_copy_output
+    
+    - name: Check if cluster is Active
+      shell: |
+        kubectl get cluster -o=jsonpath="{.items[0].status.conditions[?(@.type=='Ready')].status}"
+      register: cluster_status
+      until: cluster_status.stdout == "True"
+      retries: 30
+      delay: 10
+      environment:
+        KUBECONFIG: "/tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"
+
+    - name: Add Longhorn Helm repository
+      command: "helm repo add longhorn https://charts.longhorn.io"
+      environment:
+        KUBECONFIG: "/tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"
+
+    - name: Update Helm repositories
+      command: "helm repo update"
+      environment:
+        KUBECONFIG: "/tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"
+
+    - name: Install Longhorn via Helm
+      command: >
+        helm upgrade --install longhorn longhorn/longhorn
+        --namespace longhorn-system
+        --create-namespace
+        --version 1.7.2
+        --set defaultSettings.defaultReplicaCount=0
+      environment:
+        KUBECONFIG: "/tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"
+
+    - name: Wait for Longhorn pods to be ready
+      command: >
+        kubectl wait --for=condition=available --timeout=1200s deployment/longhorn-driver-deployer
+        -n longhorn-system
+      environment:
+        KUBECONFIG: "/tmp/{{ item }}"
+      loop: "{{ kubeconfigs }}"

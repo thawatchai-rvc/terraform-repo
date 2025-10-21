@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name:  cicd-jenkins
+  namespace: argocd
+  labels:
+    environment: prod-space     # Label สำหรับจัดกลุ่มตาม environment
+    team: fraud         # Label สำหรับจัดกลุ่มตามทีม
+spec:
+  project: default
+  source:
+    repoURL: http://192.168.140.91/ghb-fraud/deployment/cicd-app.git
+    path: development/jenkins/manifest/
+    targetRevision: main
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fraud
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

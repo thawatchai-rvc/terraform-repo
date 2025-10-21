@@ -1,0 +1,84 @@
+---
+- hosts: spider-cicd-dev-rancher
+  become: yes # เปิดใช้งาน sudo
+  tasks:    
+    - name: Install required packages for Docker Compose
+      apt:
+        name:
+          - curl
+          - jq
+          - python3-pip
+        state: present
+        update_cache: yes
+
+    - name: Download Docker Compose binary using curl
+      shell: |
+        curl -L "https://github.com/docker/compose/releases/download/v2.29.6/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+      args:
+        executable: /bin/bash
+
+    - name: Set permissions for Docker Compose
+      file:
+        path: /usr/local/bin/docker-compose
+        mode: '0755'
+
+    - name: Verify docker-compose installation
+      command: docker-compose --version
+      register: docker_compose_version
+
+    - name: Show docker-compose version
+      debug:
+        msg: "Docker Compose version: {{ docker_compose_version.stdout }}"
+
+    - name: Create /DEPLOY/ directory
+      file:
+        path: /DEPLOY
+        state: directory
+        mode: '0755'
+        owner: administrator
+        group: administrator
+
+    - name: Create /DEPLOY/rancher directory with correct permissions
+      file:
+        path: /DEPLOY/rancher
+        state: directory
+        mode: '0755'
+        owner: administrator
+        group: administrator
+
+    - name: Create docker-compose.yaml for Rancher
+      copy:
+        dest: /DEPLOY/rancher/docker-compose.yaml
+        content: |
+          services:
+            rancher:
+              image: rancher/rancher:v2.9.2
+              container_name: rancher
+              ports:
+                - 8443:443
+                - 8080:80
+              volumes:
+                - rancher-data:/var/lib/rancher
+              privileged: true
+              restart: unless-stopped
+          volumes:
+            rancher-data:
+
+    - name: Create run.sh for Rancher
+      copy:
+        dest: /DEPLOY/rancher/run.sh
+        content: |
+          #!/bin/bash
+          docker-compose down
+          docker-compose up -d
+        mode: '0755'
+
+    - name: Run Rancher using run.sh
+      command: /DEPLOY/rancher/run.sh
+      args:
+        chdir: /DEPLOY/rancher
+      register: run_result
+
+    - name: Show run.sh output
+      debug:
+        msg: "{{ run_result.stdout }}"

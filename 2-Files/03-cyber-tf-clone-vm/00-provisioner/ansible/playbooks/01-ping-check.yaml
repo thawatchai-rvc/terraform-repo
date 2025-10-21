@@ -1,7 +1,0 @@
-- name: Ping check for nodes
-  hosts: all  # ระบุชื่อของ host หรือกลุ่มในไฟล์ hosts
-  gather_facts: no 
-  become: no  # ไม่ต้องใช้สิทธิ์ root
-  tasks:
-    - name: Ping test to check connectivity
-      ansible.builtin.ping:

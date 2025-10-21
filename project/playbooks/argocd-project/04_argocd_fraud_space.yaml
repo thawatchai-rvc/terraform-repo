@@ -1,0 +1,50 @@
+---
+- hosts: spider-cicd-dev-rancher
+  vars:
+    kubeconfig: fraud-cluster-kubeconfig.yaml
+    manifest_dir: /DEPLOY/argocd-project/prod_space/fraud/argocd_manifest/
+    repository_dir: /DEPLOY/argocd-project/prod_space/fraud/argocd_repository/  # กำหนด directory สำหรับ ArgoCD repository
+
+  tasks:
+    - name: Set up kubeconfig file
+      shell: "cp ~/{{ kubeconfig }} /tmp/{{ kubeconfig }} && chmod 0600 /tmp/{{ kubeconfig }}"
+
+    - name: Copy ArgoCD project folder to remote
+      copy:
+        src: "{{ playbook_dir }}"
+        dest: "/DEPLOY/"
+        remote_src: no    # ระบุว่าไฟล์ต้นทางอยู่ในเครื่องที่รัน Ansible ไม่ใช่ในเครื่องเป้าหมาย
+        mode: '0755'      # ตั้งค่า mode ให้เหมาะสมกับสิทธิ์การเข้าถึง
+
+    - name: Find all repository files
+      find:
+        paths: "{{ repository_dir }}"
+        patterns: "*.yaml"
+        recurse: yes
+      register: found_repositories
+
+    # ใช้ไฟล์จาก repository directory ในการ apply
+    - name: Install ArgoCD repository
+      command: >
+        kubectl apply -f {{ item.path }}
+      environment:
+        KUBECONFIG: "/tmp/{{ kubeconfig }}"
+      loop: "{{ found_repositories.files }}"
+      when: found_repositories.matched > 0
+    
+    # ค้นหาไฟล์ manifest
+    - name: Find all manifest files
+      find:
+        paths: "{{ manifest_dir }}"
+        patterns: "*.yaml"
+        recurse: yes
+      register: found_manifests
+
+    # Apply ไฟล์ manifest
+    - name: Apply all manifest files
+      command: >
+        kubectl apply -f {{ item.path }}
+      environment:
+        KUBECONFIG: "/tmp/{{ kubeconfig }}"
+      loop: "{{ found_manifests.files }}"
+      when: found_manifests.matched > 0

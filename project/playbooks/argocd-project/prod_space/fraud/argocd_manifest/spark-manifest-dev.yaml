@@ -1,0 +1,21 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name:  spark
+  namespace: argocd
+  labels:
+    environment: prod-space     # Label สำหรับจัดกลุ่มตาม environment
+    team: fraud         # Label สำหรับจัดกลุ่มตามทีม
+spec:
+  project: default
+  source:
+    repoURL: http://192.168.140.91/ghb-fraud/deployment/devops-script.git
+    path: production/fraud/helm/spark
+    targetRevision: rv_dc_dev
+    helm:
+      parameters:
+        - name: worker.replicaCount
+          value: '8'
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fraud

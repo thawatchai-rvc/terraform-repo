@@ -1,0 +1,1 @@
+ansible-playbook -i inventory/development/hosts-dev playbooks/argocd-project/03_argocd_dev_space.yaml

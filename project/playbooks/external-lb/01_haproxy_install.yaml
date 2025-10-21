@@ -1,0 +1,96 @@
+---
+- hosts: spider-external-lb
+  become: yes # เปิดใช้งาน sudo
+  tasks:    
+    - name: Create /DEPLOY/ directory
+      file:
+        path: /DEPLOY
+        state: directory
+        mode: '0755'
+        owner: administrator
+        group: administrator
+
+    - name: Create /DEPLOY/haproxy directory with correct permissions
+      file:
+        path: /DEPLOY/haproxy
+        state: directory
+        mode: '0755'
+        owner: administrator
+        group: administrator
+
+    - name: Create init.sh for HAProxy
+      copy:
+        dest: /DEPLOY/haproxy/init.sh
+        content: |
+          #!/bin/bash
+          sudo apt update -y
+          sudo apt install -y haproxy
+          haproxy -v
+        mode: '0755'
+
+    - name: Create check_config.sh for HAProxy
+      copy:
+        dest: /DEPLOY/haproxy/check_config.sh
+        content: |
+          #!/bin/bash
+          sudo haproxy -c -f haproxy.cfg
+        mode: '0755'
+
+    - name: Create copy_config.sh for HAProxy
+      copy:
+        dest: /DEPLOY/haproxy/copy_config.sh
+        content: |
+          #!/bin/bash
+          sudo cp haproxy.cfg /etc/haproxy/haproxy.cfg
+          sudo systemctl restart haproxy
+        mode: '0755'
+
+    - name: Run HAProxy using init.sh
+      command: /DEPLOY/haproxy/init.sh
+      args:
+        chdir: /DEPLOY/haproxy
+      register: run_result
+
+    - name: Show run.sh output
+      debug:
+        msg: "{{ run_result.stdout }}"
+    
+    - name: Check if haproxy.cfg.original already exists
+      stat:
+        path: /DEPLOY/haproxy/haproxy.cfg.original
+      register: original_cfg_status
+
+    - name: Backup original HAProxy config
+      command: cp /etc/haproxy/haproxy.cfg /DEPLOY/haproxy/haproxy.cfg.original
+      args:
+        creates: /DEPLOY/haproxy/haproxy.cfg.original
+      when: not original_cfg_status.stat.exists
+
+    - name: Copy data into security folder to remote
+      copy:
+        src: "{{ playbook_dir }}/security/"
+        dest: "/DEPLOY/security/"
+        remote_src: no    # ระบุว่าไฟล์ต้นทางอยู่ในเครื่องที่รัน Ansible ไม่ใช่ในเครื่องเป้าหมาย
+        mode: '0755'      # ตั้งค่า mode ให้เหมาะสมกับสิทธิ์การเข้าถึง
+
+    - name: Copy data into haproxy folder to remote
+      copy:
+        src: "{{ playbook_dir }}/haproxy/"
+        dest: "/DEPLOY/haproxy/"
+        remote_src: no
+        mode: '0755'
+
+    - name: Combine haproxy.cfg.original and haproxy.cfg.fraud into haproxy.cfg
+      shell: |
+        cat /DEPLOY/haproxy/haproxy.cfg.original /DEPLOY/haproxy/haproxy.cfg.fraud > /DEPLOY/haproxy/haproxy.cfg
+
+
+    - name: Copy HAProxy config using copy_config.sh
+      command: /DEPLOY/haproxy/copy_config.sh
+      args:
+        chdir: /DEPLOY/haproxy
+      register: run_result
+
+    - name: Show copy_config.sh output
+      debug:
+        msg: "{{ run_result.stdout }}"

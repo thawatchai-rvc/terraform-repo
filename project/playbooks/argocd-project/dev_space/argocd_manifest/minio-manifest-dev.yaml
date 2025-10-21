@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: minio
+  namespace: argocd
+  labels:
+    environment: dev-space      # Label สำหรับจัดกลุ่มตาม environment
+    team: fraud         # Label สำหรับจัดกลุ่มตามทีม
+spec:
+  project: default
+  source:
+    repoURL: http://192.168.140.91/ghb-fraud/deployment/devops-script.git
+    path: development/database/helm/minio
+    targetRevision: rv_dc_dev
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true

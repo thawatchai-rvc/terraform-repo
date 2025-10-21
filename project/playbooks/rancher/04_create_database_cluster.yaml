@@ -1,0 +1,144 @@
+---
+- hosts: spider-cicd-dev-rancher
+  become: yes
+  vars_files:
+    - vars.yml
+
+  tasks:
+    - name: Login to Rancher and get API token
+      uri:
+        url: "https://{{ rancher_hostname }}:{{ rancher_port }}/v3-public/localProviders/local?action=login"
+        method: POST
+        headers:
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          username: "admin"
+          password: "{{ admin_password }}"
+        validate_certs: no
+        status_code: 201
+        return_content: yes
+      register: login_response
+
+    - name: Extract Rancher API token
+      set_fact:
+        rancher_token: "{{ login_response.json.token }}"
+
+    - name: Create new Custom cluster with RKE2 in Rancher
+      uri:
+        url: "https://{{ rancher_hostname }}:{{ rancher_port }}/v1/provisioning.cattle.io.clusters"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          apiVersion: "provisioning.cattle.io/v1"
+          kind: "Cluster"
+          metadata:
+            name: "{{ database_cluster_name }}"
+            namespace: "fleet-default"
+          spec:
+            kubernetesVersion: "v1.30.4+rke2r1"
+            rkeConfig:
+              chartValues:
+                rke2-calico: {}
+              etcd:
+                snapshotRetention: 5
+                snapshotScheduleCron: "0 */5 * * *"
+              machineGlobalConfig:
+                cni: "calico"
+                disable-kube-proxy: false
+              upgradeStrategy:
+                controlPlaneConcurrency: "1"
+                workerConcurrency: "1"
+              machineSelectorConfig:
+                - config:
+                    protect-kernel-defaults: false
+        validate_certs: no
+        status_code: 201
+      register: create_cluster_response
+
+    - name: Get Cluster ID from /v3/clusters
+      uri:
+        url: "https://{{ rancher_hostname }}:{{ rancher_port }}/v3/clusters?name={{ database_cluster_name }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+        validate_certs: no
+        status_code: 200
+      register: cluster_info_response
+
+    - name: Extract actual clusterId
+      set_fact:
+        actual_cluster_id: "{{ cluster_info_response.json.data[0].id }}"
+    
+    - name: Create Cluster Registration Token and Get NodeCommand
+      uri:
+        url: "https://{{ rancher_hostname }}:{{ rancher_port }}/v3/clusterregistrationtokens"
+        method: POST
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+          Content-Type: "application/json"
+        body_format: json
+        body:
+          type: "clusterRegistrationToken"
+          clusterId: "{{ actual_cluster_id }}"
+        validate_certs: no
+        status_code: 201
+      register: registration_token_response
+
+    - name: Get NodeCommand from Registration Token
+      uri:
+        url: "{{ registration_token_response.json.links.self }}"
+        method: GET
+        headers:
+          Authorization: "Bearer {{ rancher_token }}"
+        validate_certs: no
+        status_code: 200
+      register: node_command_response
+
+    - name: Extract NodeCommand
+      set_fact:
+        node_command: "{{ node_command_response.json.insecureNodeCommand }}"
+      vars:
+        ansible_facts:
+          fact_scope: global
+
+    - name: Debug Node Command
+      debug:
+        var: node_command
+    
+- hosts: spider-db-dev-master
+  become: yes
+
+  tasks:
+    - name: Extract Rancher API token
+      set_fact:
+        node_command: "{{ hostvars[groups['spider-cicd-dev-rancher'][0]].node_command }}}"
+    
+    - name: Debug Node Command in spider-db-dev-master
+      debug:
+        var: node_command
+
+    - name: Run NodeCommand to register the nodes
+      shell: "{{ hostvars[groups['spider-cicd-dev-rancher'][0]].node_command }} --etcd --controlplane"
+      args:
+        executable: /bin/bash
+  
+- hosts: spider-db-dev-node
+  become: yes
+
+  tasks:
+    - name: Extract Rancher API token
+      set_fact:
+        node_command: "{{ hostvars[groups['spider-cicd-dev-rancher'][0]].node_command }}}"
+    
+    - name: Debug Node Command in spider-db-dev-node
+      debug:
+        var: node_command
+
+    - name: Run NodeCommand to register the nodes
+      shell: "{{ hostvars[groups['spider-cicd-dev-rancher'][0]].node_command }} --worker"
+      args:
+        executable: /bin/bash

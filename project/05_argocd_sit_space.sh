@@ -1,0 +1,1 @@
+ansible-playbook -i inventory/development/hosts-dev playbooks/argocd-project/05_argocd_sit_space.yaml

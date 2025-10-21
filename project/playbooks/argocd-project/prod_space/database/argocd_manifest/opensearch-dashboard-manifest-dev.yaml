@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name:  opensearch-dashboard
+  namespace: argocd
+  labels:
+    environment: prod-space     # Label สำหรับจัดกลุ่มตาม environment
+    team: fraud         # Label สำหรับจัดกลุ่มตามทีม
+spec:
+  project: default
+  source:
+    repoURL: http://192.168.140.91/ghb-fraud/deployment/devops-script.git
+    path: production/database/helm/opensearch-dashboards
+    targetRevision: failback-failover
+    helm:
+      valueFiles:
+        - values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: database
