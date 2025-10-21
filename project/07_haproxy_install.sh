@@ -1,1 +1,0 @@
-ansible-playbook -i inventory/development/hosts-dev playbooks/external-lb/01_haproxy_install.yaml
