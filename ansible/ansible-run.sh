@@ -13,5 +13,5 @@
 # ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/rancher/03_create_lab_cluster.yaml
 
 # install-tool-to-cluster
-ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/rancher/08_get_all_kubeconfig.yaml
+# ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/rancher/08_get_all_kubeconfig.yaml
 # ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/rancher/09_install_longhorn.yaml

@@ -1,5 +1,5 @@
 ---
-- hosts: node-rancher
+- hosts: infra-lab-cicd-dev-rancher
   become: yes
   tasks:
     - name: Check if the host is reachable via ping
