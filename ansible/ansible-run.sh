@@ -1,5 +1,5 @@
 # test-ping, set-timesync
-# ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/01-ping-check.yaml
+ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/01-ping-check.yaml
 # ansible-playbook -i inventory/hosts --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/02-time-sync.yaml
 # ansible-playbook -i inventory/hosts --extra-vars "ansible_become_password=P@ssw0rd" --ssh-extra-args="-o StrictHostKeyChecking=no" playbooks/02-time-sync.yaml
 
